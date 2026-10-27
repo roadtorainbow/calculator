@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#F8F5F0">
+<title>外匯計算機</title>
+
+<style>
+:root {
+  --bg: #F8F5F0;
+  --card: #FFFFFF;
+  --text: #37332F;
+  --muted: #938A81;
+  --pink: #F8E9E6;
+  --pink-border: #F0DAD5;
+  --orange: #C98769;
+  --line: #EDE6DF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Noto Sans TC", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+button, input {
+  font: inherit;
+}
+
+.calculator {
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 金額顯示區 */
+.display-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 金額卡片 */
+.currency-row {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 18px;
+  border-radius: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  border: 2px solid #E9D7D0;
+  background: var(--card);
+  box-shadow: 0 4px 15px rgba(91, 70, 53, 0.045);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.currency-row.active {
+  border-color: var(--orange);
+}
+
+.currency-row.twd {
+  background: var(--pink);
+  border-color: var(--pink-border);
+}
+
+.currency-row.twd.active {
+  border-color: var(--orange);
+}
+
+.currency-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.currency-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.currency-tag {
+  font-size: clamp(16px, 4.2vw, 21px);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--orange);
+  white-space: nowrap;
+}
+
+/* 匯率設定 */
+.rate-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #F8F5F1;
+  border: 1px solid var(--line);
+  padding: 5px 8px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+
+.rate-control span {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rate-control input {
+  width: 66px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  text-align: right;
+  color: var(--orange);
+  font-size: 16px;
+  font-weight: 800;
+  padding: 0;
+}
+
+/* 金額顯示 */
+.amount {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: right;
+  font-size: clamp(48px, 13vw, 68px);
+  line-height: 1.15;
+  font-weight: 850;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.twd .amount {
+  color: #A86F65;
+}
+
+.amount.long {
+  font-size: clamp(40px, 10vw, 52px);
+}
+
+.amount.very-long {
+  font-size: clamp(32px, 8vw, 42px);
+}
+
+.amount.extra-long {
+  font-size: clamp(25px, 6vw, 32px);
+}
+
+/* 數字鍵盤 */
+.keypad {
+  flex-shrink: 0;
+  height: 46%;
+  min-height: 260px;
+  max-height: 440px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.btn {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 19px;
+  background: white;
+  color: var(--text);
+  font-size: clamp(32px, 6vh, 44px);
+  font-weight: 750;
+  box-shadow: 0 3px 9px rgba(91, 70, 53, 0.06);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.08s, opacity 0.08s;
+}
+
+.btn:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+.func {
+  background: #EFE8E1;
+  color: #77685C;
+}
+
+.op {
+  background: #E9B8B5;
+  color: #563F3B;
+  font-size: clamp(36px, 7vh, 48px);
+}
+
+.clear {
+  background: #F5DEDA;
+  color: #A45E57;
+}
+
+.equals {
+  grid-column: span 3;
+  background: var(--orange);
+  color: white;
+  font-size: 42px;
+}
+
+/* 矮螢幕調整 */
+@media (max-height: 680px) {
+  .calculator {
+    padding: 6px 10px;
+    gap: 7px;
+  }
+
+  .display-area {
+    gap: 7px;
+  }
+
+  .currency-row {
+    padding: 11px 13px;
+    gap: 6px;
+    border-radius: 19px;
+  }
+
+  .currency-tag {
+    font-size: 15px;
+  }
+
+  .rate-control {
+    padding: 3px 5px;
+  }
+
+  .rate-control input {
+    width: 58px;
+    font-size: 14px;
+  }
+
+  .keypad {
+    height: 46%;
+    min-height: 225px;
+    gap: 6px;
+  }
+
+  .btn {
+    border-radius: 14px;
+    font-size: clamp(29px, 5.5vh, 38px);
+  }
+
+  .op {
+    font-size: clamp(33px, 6vh, 43px);
+  }
+
+  .equals {
+    font-size: 36px;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="calculator">
+
+  <main class="display-area">
+
+    <!-- 外幣金額 -->
+    <section class="currency-row active" id="foreign-card">
+      <div class="currency-heading">
+        <div class="currency-left">
+          <div class="currency-tag" id="foreign-label">🇯🇵 JPY 日幣</div>
+
+          <div class="rate-control">
+            <span>匯率</span>
+            <input
+              id="rate"
+              type="number"
+              value="0.21"
+              step="0.001"
+              min="0"
+              aria-label="外幣兌台幣匯率"
+            >
+          </div>
+        </div>
+
+        <span class="hint">點擊輸入</span>
+      </div>
+
+      <div class="amount" id="foreign-amount">0</div>
+    </section>
+
+    <!-- 台幣金額 -->
+    <section class="currency-row twd" id="twd-card">
+      <div class="currency-heading">
+        <div class="currency-tag">🇹🇼 TWD 台幣</div>
+        <span class="hint" id="twd-hint">換算結果</span>
+      </div>
+
+      <div class="amount" id="twd-amount">0</div>
+    </section>
+
+  </main>
+
+  <!-- 數字鍵盤 -->
+  <section class="keypad">
+
+    <button class="btn" data-key="7">7</button>
+    <button class="btn" data-key="8">8</button>
+    <button class="btn" data-key="9">9</button>
+    <button class="btn op" data-key="÷">÷</button>
+
+    <button class="btn" data-key="4">4</button>
+    <button class="btn" data-key="5">5</button>
+    <button class="btn" data-key="6">6</button>
+    <button class="btn op" data-key="×">×</button>
+
+    <button class="btn" data-key="1">1</button>
+    <button class="btn" data-key="2">2</button>
+    <button class="btn" data-key="3">3</button>
+    <button class="btn op" data-key="-">−</button>
+
+    <button class="btn clear" id="clear">C</button>
+    <button class="btn" data-key="0">0</button>
+    <button class="btn" data-key=".">.</button>
+    <button class="btn op" data-key="+">+</button>
+
+    <!-- 最後一排：等號在左，刪除鍵在右下角 -->
+    <button class="btn equals" id="equals">＝</button>
+    <button class="btn func" id="backspace" aria-label="刪除最後一個字元">⌫</button>
+
+  </section>
+
+</div>
+
+<script>
+let currentInput = "0";
+let currentCurrency = "JPY";
+let inputMode = "foreign";
+let hasCalculated = false;
+
+const foreignCard = document.getElementById("foreign-card");
+const twdCard = document.getElementById("twd-card");
+const foreignLabel = document.getElementById("foreign-label");
+const foreignAmount = document.getElementById("foreign-amount");
+const twdAmount = document.getElementById("twd-amount");
+const rateInput = document.getElementById("rate");
+const twdHint = document.getElementById("twd-hint");
+
+/* 匯率 */
+function getRate() {
+  const rate = Number(rateInput.value);
+  return Number.isFinite(rate) && rate > 0 ? rate : 0;
+}
+
+/* 數字格式 */
+function formatNumber(value) {
+  if (!Number.isFinite(value)) return "0";
+
+  return Number(value.toPrecision(12)).toLocaleString("en-US", {
+    maximumFractionDigits: 8
+  });
+}
+
+/* 依照金額長度調整顯示 */
+function fitAmount(element, text) {
+  element.textContent = text;
+
+  element.classList.remove(
+    "long",
+    "very-long",
+    "extra-long"
+  );
+
+  if (text.length > 18) {
+    element.classList.add("extra-long");
+  } else if (text.length > 14) {
+    element.classList.add("very-long");
+  } else if (text.length > 10) {
+    element.classList.add("long");
+  }
+}
+
+/* 四則運算 */
+function evaluateExpression(expression) {
+  const normalized = expression
+    .replace(/×/g, "*")
+    .replace(/÷/g, "/");
+
+  if (!/^[0-9+\-*/.()\s]+$/.test(normalized)) {
+    return null;
+  }
+
+  try {
+    const result = Function(
+      '"use strict"; return (' + normalized + ')'
+    )();
+
+    return Number.isFinite(result) ? result : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function getRawValue() {
+  const result = evaluateExpression(currentInput);
+  return result === null ? 0 : result;
+}
+
+/* 更新金額 */
+function updateDisplay() {
+  const value = getRawValue();
+  const rate = getRate();
+
+  if (inputMode === "foreign") {
+    fitAmount(foreignAmount, currentInput);
+
+    fitAmount(
+      twdAmount,
+      formatNumber(Math.round(value * rate))
+    );
+
+    twdHint.textContent = "換算結果";
+  } else {
+    fitAmount(twdAmount, currentInput);
+
+    fitAmount(
+      foreignAmount,
+      formatNumber(rate > 0 ? value / rate : 0)
+    );
+
+    twdHint.textContent = "輸入中";
+  }
+}
+
+/* 輸入數字 */
+function appendInput(key) {
+  const operators = ["+", "-", "×", "÷"];
+
+  if (/^[0-9]$/.test(key)) {
+    if (hasCalculated || currentInput === "0") {
+      currentInput = key;
+    } else {
+      currentInput += key;
+    }
+
+    hasCalculated = false;
+    updateDisplay();
+    return;
+  }
+
+  if (key === ".") {
+    if (hasCalculated) {
+      currentInput = "0.";
+      hasCalculated = false;
+    } else {
+      const lastPart = currentInput.split(/[+\-×÷]/).pop();
+
+      if (!lastPart.includes(".")) {
+        currentInput += lastPart === "" ? "0." : ".";
+      }
+    }
+
+    updateDisplay();
+    return;
+  }
+
+  if (operators.includes(key)) {
+    hasCalculated = false;
+
+    if (/[+\-×÷]$/.test(currentInput)) {
+      currentInput = currentInput.slice(0, -1) + key;
+    } else {
+      currentInput += key;
+    }
+
+    updateDisplay();
+  }
+}
+
+/* 等號 */
+function calculateFinal() {
+  const result = evaluateExpression(currentInput);
+
+  if (result === null) return;
+
+  currentInput = String(Number(result.toPrecision(12)));
+  hasCalculated = true;
+  updateDisplay();
+}
+
+/* 清除全部 */
+function clearAll() {
+  currentInput = "0";
+  hasCalculated = false;
+  updateDisplay();
+}
+
+/* 刪除最後一個字元 */
+function backspace() {
+  if (hasCalculated) {
+    clearAll();
+    return;
+  }
+
+  currentInput = currentInput.length > 1
+    ? currentInput.slice(0, -1)
+    : "0";
+
+  updateDisplay();
+}
+
+/* 切換輸入模式 */
+function setInputMode(mode) {
+  inputMode = mode;
+
+  foreignCard.classList.toggle(
+    "active",
+    mode === "foreign"
+  );
+
+  twdCard.classList.toggle(
+    "active",
+    mode === "twd"
+  );
+
+  clearAll();
+}
+
+/* 切換日幣與人民幣 */
+function switchCurrency() {
+  currentCurrency = currentCurrency === "JPY" ? "CNY" : "JPY";
+
+  foreignLabel.textContent = currentCurrency === "JPY"
+    ? "🇯🇵 JPY 日幣"
+    : "🇨🇳 CNY 人民幣";
+
+  rateInput.value = currentCurrency === "JPY"
+    ? "0.21"
+    : "4.50";
+
+  rateInput.step = currentCurrency === "JPY"
+    ? "0.001"
+    : "0.01";
+
+  rateInput.setAttribute(
+    "aria-label",
+    currentCurrency === "JPY"
+      ? "日幣兌台幣匯率"
+      : "人民幣兌台幣匯率"
+  );
+
+  clearAll();
+}
+
+/* 點幣別名稱切換幣種 */
+foreignLabel.addEventListener("click", event => {
+  event.stopPropagation();
+  switchCurrency();
+  setInputMode("foreign");
+});
+
+/* 點外幣卡片切換輸入模式 */
+foreignCard.addEventListener("click", event => {
+  if (event.target === rateInput) return;
+  setInputMode("foreign");
+});
+
+/* 點台幣卡片切換成台幣輸入 */
+twdCard.addEventListener("click", () => {
+  setInputMode("twd");
+});
+
+/* 數字與運算符號 */
+document.querySelectorAll("[data-key]").forEach(button => {
+  button.addEventListener("click", () => {
+    appendInput(button.dataset.key);
+  });
+});
+
+/* 清除、刪除、等號 */
+document.getElementById("clear").addEventListener(
+  "click", clearAll
+);
+
+document.getElementById("backspace").addEventListener(
+  "click", backspace
+);
+
+document.getElementById("equals").addEventListener(
+  "click", calculateFinal
+);
+
+/* 修改匯率時即時更新 */
+rateInput.addEventListener("input", updateDisplay);
+
+/* 支援實體鍵盤 */
+document.addEventListener("keydown", event => {
+  if (/^[0-9.]$/.test(event.key)) {
+    appendInput(event.key);
+  } else if (["+", "-"].includes(event.key)) {
+    appendInput(event.key);
+  } else if (event.key === "*") {
+    appendInput("×");
+  } else if (event.key === "/") {
+    event.preventDefault();
+    appendInput("÷");
+  } else if (
+    event.key === "Enter" || event.key === "="
+  ) {
+    calculateFinal();
+  } else if (event.key === "Backspace") {
+    backspace();
+  } else if (event.key === "Escape") {
+    clearAll();
+  }
+});
+
+/* 初始化 */
+updateDisplay();
+</script>
+</body>
+</html>
